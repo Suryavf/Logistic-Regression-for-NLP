@@ -121,11 +121,11 @@ def StochasticGradientDescent(x_train,y_train,w):
         if n>0:
             y_pred = np.dot(xs,w.T)
         
-        # Loss-function
-        L = logistic.cdf( np.dot(xs,w.T) ) - ys
+        # Hypotesis
+        h = logistic.cdf( np.dot(xs,w.T) ) 
         
         # Gradient
-        g = L*xs
+        g = (h - ys)*xs
         
         # Update
         w = w - eta*g
@@ -145,12 +145,85 @@ def StochasticGradientDescent(x_train,y_train,w):
 """
 Features
 --------
+ - x1: Positive lexicon 
+ - x2: Negative lexicon
+ - x3: Exist "No"?
+ - x4: Exist pronouns?
+ - x5: Exist "!"?
+ - x6: log(count words)
 """
 from sklearn.feature_extraction.text import HashingVectorizer
 vect = HashingVectorizer(decode_error='ignore', 
                          n_features=2**21,
                          preprocessor=None, 
                          tokenizer=tokenizer)
+
+
+""" x1: Positive lexicon """
+def positiveLexicon(text):
+    
+    # Good words list
+    with open('positive-words.txt', 'r') as f:
+        goodWords = f.read().split('\n')[:-2]
+    
+    good = 0
+    for w in text.split():
+        if w in goodWords:
+            good = good + 1
+    
+    return good
+
+
+""" x2: Negative lexicon """
+def negativeLexicon(text):
+    
+    # Good words list
+    with open('negative-words.txt', 'r') as f:
+        badWords = f.read().split('\n')[:-2]
+    
+    bad = 0
+    for w in text.split():
+        if w in badWords:
+            bad = bad + 1
+    
+    return bad
+
+
+""" x3: Does include "no"? """
+def doesIncludeNo(text):
+    
+    nos = ['No','no']
+    isthereNo = 0
+    for w in text[0][1:-1].split():
+        if w in nos:
+            isthereNo = 1
+            break
+    
+    return isthereNo
+
+
+""" x4: Does include Pronouns (1st and 2nd)? """
+def doesIncludePronouns(text):
+    
+    pronouns = stopwords.words('english')[17:]
+    isthere = 0
+    for w in text[0][1:-1].split():
+        if w in pronouns:
+            isthere = 1
+            break
+    
+    return isthere
+
+
+""" x5: Does include "!"? """
+def doesIncludeExclamationMark(text):
+    return '!' in text[0][1:-1]
+
+
+""" x6: log(count words) """
+def logCountWords(text):
+    return np.log( len(text[0][1:-1].split()) )
+
 
 
 """
@@ -165,31 +238,7 @@ doc_stream = stream_docs(path='shuffled_movie_data.csv')
 """
 Train
 -----
-
-import pyprind
-pbar = pyprind.ProgBar(45)
-
-classes = np.array([0, 1])
-for _ in range(45):
-    # Getting
-    X_train, y_train = get_minibatch(doc_stream, size=1000)
-    
-    # Feature
-    X_train = vect.transform(X_train)
-    
-    # Run train
-    clf.partial_fit(X_train, y_train, classes=classes)
-    pbar.update()
 """
-# Getting
-#print('a')
-#x_train, y_train = get_minibatch(doc_stream, size=45000)
-#print('b')
-
-# Feature
-#x_train = vect.transform(x_train)
-#print('c')
-
 import pyprind
 pbar = pyprind.ProgBar(45)
 
