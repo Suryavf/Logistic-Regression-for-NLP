@@ -89,7 +89,7 @@ def dataAnalysis(doc):
     
     import pyprind
     pbar = pyprind.ProgBar(100)
-    print('\nRead text')
+    print('Data Analysis -----------------------\nRead text')
     for _ in range(100):
         # Getting
         x, y = get_minibatch(doc, size=500)
@@ -316,7 +316,7 @@ for _ in range(50):
 
 
 """
-Analysis data
+Data analysis
 -------------
 """
 
