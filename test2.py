@@ -45,7 +45,7 @@ def tokenizer(text):
     return text
 
 # Return a lower case proccesed text
-def processtext(texto):
+def preprocessing(texto):
     import re
     REPLACE_NO_SPACE = re.compile("(\.)|(\;)|(\:)|(\')|(\?)|(\,)|(\")|(\()|(\))|(\[)|(\])|(\n)")
     REPLACE_WITH_SPACE = re.compile("(<br\s*/><br\s*/>)|(\-)|(\/)")
@@ -78,7 +78,6 @@ Preprocessing
 -------------
 """
 def dataAnalysis(doc):
-    
     import pandas as pd
     
     wordsP = list()
@@ -95,10 +94,12 @@ def dataAnalysis(doc):
         x, y = get_minibatch(doc, size=500)
         
         for xs,ys in zip(x,y):
+            xs = preprocessing(xs)
             
             # Positive
             if ys==1:
-                for w in xs[1:-1].split():
+                for w in xs.split():
+                    
                     if w in wordsP:
                         idx = wordsP.index(w)
                         countP[idx] = countP[idx] + 1
@@ -107,15 +108,14 @@ def dataAnalysis(doc):
                         countP.append(1)
                 
             else:
-                for w in xs[1:-1].split():
+                for w in xs.split():
                     if w in wordsN:
                         idx = wordsN.index(w)
                         countN[idx] = countN[idx] + 1
                     else:
                         wordsN.append(w)
                         countN.append(1)
-                
-                
+                 
         # Bar
         pbar.update()
         
@@ -191,7 +191,7 @@ def applyModel(x,w):
     y_pred = list()
     for xs in x:
         ys =  logistic.cdf( np.dot( np.array(xs + [1]),w ) ) 
-        ys = int( ys > 0.5 )
+        #ys = int( ys > 0.5 )
         
         y_pred.append(ys)
     
@@ -249,9 +249,9 @@ def negativeLexicon(text):
 """ x3: Does include "no"? """
 def doesIncludeNo(text):
     
-    nos = ['No','no','Not','not']
+    nos = ['no','not']
     isthereNo = 0
-    for w in text[1:-1].split():
+    for w in text.split():
         if w in nos:
             isthereNo = 1
             break
@@ -264,7 +264,7 @@ def doesIncludePronouns(text):
     
     pronouns = stopwords.words('english')[17:]
     isthere = 0
-    for w in text[1:-1].split():
+    for w in text.split():
         if w in pronouns:
             isthere = 1
             break
@@ -280,6 +280,81 @@ def doesIncludeExclamationMark(text):
 """ x6: log(count words) """
 def logCountWords(text):
     return np.log( len(text[1:-1].split()) )
+
+
+""" x7: Does include More Positives? """
+def morePositives(text):
+    import pandas as pd
+    df = pd.read_csv('interPosNeg.csv')
+    positives = df.loc[:10,'Word'].values.tolist()
+    
+    df = pd.read_csv('excluPosNeg.csv')
+    positives = positives + df.loc[:10,'Word'].values.tolist()
+    
+    isthere = 0
+    for w in text.split():
+        if w in positives:
+            isthere = 1
+            break
+    
+    return isthere
+
+
+""" x8: Does include More Negatives? """
+def moreNegatives(text):
+    import pandas as pd
+    df = pd.read_csv('interNegPos.csv')
+    negatives = df.loc[:10,'Word'].values.tolist()
+    
+    df = pd.read_csv('excluNegPos.csv')
+    negatives = negatives + df.loc[:10,'Word'].values.tolist()
+    
+    isthere = 0
+    for w in text.split():
+        if w in negatives:
+            isthere = 1
+            break
+    
+    return isthere
+
+""" x9: How much include More Positives? """
+def howMuchPositives(text):
+    import pandas as pd
+    df = pd.read_csv('interPosNeg.csv')
+    positives = df.loc[:10,'Word'].values.tolist()
+    
+    df = pd.read_csv('excluPosNeg.csv')
+    positives = positives + df.loc[:10,'Word'].values.tolist()
+    
+    isthere = 0
+    for w in text.split():
+        if w in positives:
+            isthere = 1
+            break
+    
+    del(df)
+    return isthere
+
+
+""" x10: How much include More Negatives? """
+def howMuchNegatives(text):
+    import pandas as pd
+    df = pd.read_csv('interNegPos.csv')
+    negatives = df.loc[:10,'Word'].values.tolist()
+    
+    df = pd.read_csv('excluNegPos.csv')
+    negatives = negatives + df.loc[:10,'Word'].values.tolist()
+    
+    isthere = 0
+    for w in text.split():
+        if w in negatives:
+            isthere = 1
+            break
+    
+    del(df)
+    return isthere
+
+
 ##  ---------------------------------------------------------------------------    
 
 
@@ -300,12 +375,16 @@ for _ in range(50):
     x_raw, y_raw = get_minibatch(doc_stream, size=1000)
     
     # Update features
-    features = [ [ positiveLexicon           (processtext(text)),
-                   negativeLexicon           (processtext(text)),
-                   doesIncludeNo             (processtext(text)), 
-                   doesIncludePronouns       (processtext(text)),
-                   doesIncludeExclamationMark(processtext(text)),
-                   logCountWords             (processtext(text))] for text in x_raw ] 
+    features = [ [ positiveLexicon           (preprocessing(text)),
+                   negativeLexicon           (preprocessing(text)),
+                   doesIncludeNo             (preprocessing(text)), 
+                   doesIncludePronouns       (preprocessing(text)),
+                   doesIncludeExclamationMark(preprocessing(text)),
+                   logCountWords             (preprocessing(text)),
+                   morePositives             (preprocessing(text)),
+                   moreNegatives             (preprocessing(text)),
+                   howMuchPositives          (preprocessing(text)),
+                   howMuchNegatives          (preprocessing(text))] for text in x_raw ] 
     x = x + features
     
     # Update out
@@ -314,12 +393,12 @@ for _ in range(50):
     # Bar
     pbar.update()
 
-
 """
 Data analysis
 -------------
 """
 
+"""
 doc_stream = stream_docs(path='shuffled_movie_data.csv')
 positive,negative = dataAnalysis(doc_stream)
 
@@ -362,6 +441,8 @@ excluPosNeg = pd.DataFrame({'Word' : Pos_Neg,'Count': countPN})
 interPosNeg = interPosNeg.sort_values('Coefficient',ascending = False).reset_index()
 excluPosNeg = excluPosNeg.sort_values('Count',ascending = False).reset_index()
 
+interPosNeg.to_csv('interPosNeg.csv',index=False)
+excluPosNeg.to_csv('excluPosNeg.csv',index=False)
         
 # -----------------------------------------------------------------------------
 NegPos  = list()
@@ -389,7 +470,9 @@ excluNegPos = pd.DataFrame({'Word' : Neg_Pos,'Count': countNP})
 interNegPos = interNegPos.sort_values('Coefficient',ascending = False).reset_index()
 excluNegPos = excluNegPos.sort_values('Count',ascending = False).reset_index()
 
-
+interNegPos.to_csv('interNegPos.csv',index=False)
+excluNegPos.to_csv('excluNegPos.csv',index=False)
+"""
 
 
 """
@@ -403,7 +486,7 @@ print('\nTrain Logistic Regression')
 kf = KFold(n_splits=8)  
 pbar = pyprind.ProgBar(8)
 
-accuracy = list()
+prediction = list()
 for train, test in kf.split(x):
     
     # Select
@@ -419,13 +502,36 @@ for train, test in kf.split(x):
     # Run test
     y_pred = applyModel(x_test,w)
     
-    # Accuracy
-    acc = 0
-    for real,pred in zip(y_pred,y_test):
-        acc = acc + int( real == pred )
+    prediction.append({'Real'      : y_test,
+                       'Prediction': y_pred})
     
-    accuracy.append( acc*100/len(test) )
+    # Accuracy
+    #acc = 0
+    #for real,pred in zip(y_pred,y_test):
+    #    acc = acc + int( real == pred )
+    
+    #accuracy.append( acc*100/len(test) )
     
     # Bar
     pbar.update()
 
+"""
+Result Analysis
+---------------
+"""
+from sklearn.metrics import roc_curve
+
+print('\nResult Analysis')
+accuracy   = list()
+for p in prediction:
+    fpr, tpr, thresholds =roc_curve(p['Real'], p['Prediction'])
+    
+    fpr_tpr = [ np.abs(a-b) for a,b in zip(fpr,tpr) ]
+    threshold = thresholds[ fpr_tpr.index(max(fpr_tpr)) ]
+    
+    y_pred = [ int(score>threshold) for score in p['Prediction']]
+    acc = 0
+    for real,pred in zip(y_pred,p['Real']):
+        acc = acc + int( real == pred )
+    
+    accuracy.append( acc*100/len(y_pred) )
