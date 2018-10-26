@@ -390,6 +390,8 @@ positive.to_csv('positive.csv',index=False)
 negative.to_csv('negative.csv',index=False)
 
 """
+
+"""
 import pandas as pd
 
 positive = pd.read_csv('positive.csv')
@@ -466,7 +468,7 @@ excluNegPos = excluNegPos.sort_values('Count',ascending = False).reset_index(dro
 interNegPos.to_csv('interNegPos.csv',index=False)
 excluNegPos.to_csv('excluNegPos.csv',index=False)
 
-
+"""
 
 """
 Generate features
@@ -513,8 +515,22 @@ for _ in range(50):
     
     # Bar
     pbar.update()
-"""
 
+
+data ={'Positive lexicon:'      : [xs[0] for xs in x],
+       'Negative lexicon:'      : [xs[1] for xs in x],
+       'Include no'             : [xs[2] for xs in x],
+       'Include Pronouns'       : [xs[3] for xs in x],
+       'Include !'              : [xs[4] for xs in x],
+       'log(count words)'       : [xs[5] for xs in x],
+       'Include positive words:': [xs[6] for xs in x],
+       'Include negative words:': [xs[7] for xs in x],
+       'Count positive words:'  : [xs[8] for xs in x],
+       'Count negative words:'  : [xs[9] for xs in x],
+       'Sentiment:'             : y}
+
+data = pd.DataFrame(data)
+"""
 
 """
 Train LR
@@ -529,7 +545,7 @@ pbar = pyprind.ProgBar(8)
 
 prediction = list()
 
-features = [0,1,2,3,4,5,6,7,8,9,10,11]
+features = [0,1,2,5,6,7,8,9,10,11]
 
 for train, test in kf.split(x):
     
