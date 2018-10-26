@@ -137,7 +137,7 @@ def dataAnalysis(doc):
 Stochastic Gradient Descent
 ---------------------------
 """
-def StochasticGradientDescent(x_train,y_train):
+def StochasticGradientDescent(x_train,y_train,features):
     import random
     from scipy.stats import logistic
     
@@ -147,8 +147,8 @@ def StochasticGradientDescent(x_train,y_train):
     errNorm   = 1000
     threshold = 0.00001
     
-    n_samples  = len(x_train   )
-    n_features = len(x_train[0])
+    n_samples  = len(x_train )
+    n_features = len(features) ## ==================================================================
     
     w = np.zeros(n_features + 1)
     
@@ -159,7 +159,8 @@ def StochasticGradientDescent(x_train,y_train):
         # Random selection
         n = round(random.uniform(0, n_samples-1))
         try:
-            xs = np.array( x_train[n] + [1] )
+            xs = np.array( [x_train[n][i] for i in features] + [1] ) ## ==================================================================
+            
         except:
             print('n: ',n)
             print('n_samples: ',n_samples)
@@ -186,12 +187,11 @@ def StochasticGradientDescent(x_train,y_train):
         
     return w
 
-def applyModel(x,w):      
+def applyModel(x,w,features):      
     
     y_pred = list()
     for xs in x:
-        ys =  logistic.cdf( np.dot( np.array(xs + [1]),w ) ) 
-        #ys = int( ys > 0.5 )
+        ys =  logistic.cdf( np.dot( np.array([xs[i] for i in features]  + [1]),w ) )  ## ==================================================================
         
         y_pred.append(ys)
     
@@ -234,7 +234,7 @@ def positiveLexicon(text):
 """ x2: Negative lexicon """
 def negativeLexicon(text):
     
-    # Good words list
+    # Bad words list
     with open('negative-words.txt', 'r') as f:
         badWords = f.read().split('\n')[:-2]
     
@@ -262,7 +262,7 @@ def doesIncludeNo(text):
 """ x4: Does include Pronouns (1st and 2nd)? """
 def doesIncludePronouns(text):
     
-    pronouns = stopwords.words('english')[17:]
+    pronouns = stopwords.words('english')[:17]
     isthere = 0
     for w in text.split():
         if w in pronouns:
@@ -274,12 +274,12 @@ def doesIncludePronouns(text):
 
 """ x5: Does include "!"? """
 def doesIncludeExclamationMark(text):
-    return int( '!' in text[1:-1] )
+    return int( '!' in text )
 
 
 """ x6: log(count words) """
 def logCountWords(text):
-    return np.log( len(text[1:-1].split()) )
+    return np.log( len(text.split()) )
 
 
 """ x7: Does include More Positives? """
@@ -304,10 +304,10 @@ def morePositives(text):
 def moreNegatives(text):
     import pandas as pd
     df = pd.read_csv('interNegPos.csv')
-    negatives = df.loc[:10,'Word'].values.tolist()
+    negatives = df.loc[:30,'Word'].values.tolist()
     
     df = pd.read_csv('excluNegPos.csv')
-    negatives = negatives + df.loc[:10,'Word'].values.tolist()
+    negatives = negatives + df.loc[:2,'Word'].values.tolist()
     
     isthere = 0
     for w in text.split():
@@ -317,81 +317,64 @@ def moreNegatives(text):
     
     return isthere
 
+
 """ x9: How much include More Positives? """
-def howMuchPositives(text):
-    import pandas as pd
-    df = pd.read_csv('interPosNeg.csv')
-    positives = df.loc[:10,'Word'].values.tolist()
+def howMuchPositives(text,interPosNeg,excluPosNeg):
+    positives = interPosNeg.loc[:30,'Word'].values.tolist()
+    positives = positives + excluPosNeg.loc[:2,'Word'].values.tolist()
     
-    df = pd.read_csv('excluPosNeg.csv')
-    positives = positives + df.loc[:10,'Word'].values.tolist()
-    
-    isthere = 0
+    count = 0
     for w in text.split():
         if w in positives:
-            isthere = 1
-            break
-    
-    del(df)
-    return isthere
+            count = count + 1
+
+    return count
 
 
 """ x10: How much include More Negatives? """
-def howMuchNegatives(text):
-    import pandas as pd
-    df = pd.read_csv('interNegPos.csv')
-    negatives = df.loc[:10,'Word'].values.tolist()
+def howMuchNegatives(text,interNegPos,excluNegPos):
+    negatives = interNegPos.loc[:30,'Word'].values.tolist()
+    negatives = negatives + excluNegPos.loc[:2,'Word'].values.tolist()
     
-    df = pd.read_csv('excluNegPos.csv')
-    negatives = negatives + df.loc[:10,'Word'].values.tolist()
-    
-    isthere = 0
+    count = 0
     for w in text.split():
         if w in negatives:
-            isthere = 1
-            break
+            count = count + 1
     
-    del(df)
-    return isthere
+    return count
 
+
+""" x11: How much include More Positives? (ratio) """
+def howMuchPositivesRatio(text,interPosNeg,excluPosNeg):
+    positives = interPosNeg.loc[:30,'Word'].values.tolist()
+    positives = positives + excluPosNeg.loc[:2,'Word'].values.tolist()
+    
+    countPost = 0
+    countWord = 0
+    for w in text.split():
+        countWord = countWord + 1
+        if w in positives:
+            countPost = countPost + 1
+    
+    return countPost/countWord
+
+
+""" x12: How much include More Negatives? (ratio) """
+def howMuchNegativesRatio(text,interNegPos,excluNegPos):
+    negatives = interNegPos.loc[:30,'Word'].values.tolist()
+    negatives = negatives + excluNegPos.loc[:2,'Word'].values.tolist()
+    
+    countNega = 0
+    countWord = 0
+    for w in text.split():
+        countWord = countWord + 1
+        if w in negatives:
+            countNega = countNega + 1
+    
+    return countNega/countWord
 
 ##  ---------------------------------------------------------------------------    
 
-
-"""
-Generate features
------------------
-"""
-
-import pyprind
-pbar = pyprind.ProgBar(50)
-doc_stream = stream_docs(path='shuffled_movie_data.csv')
-
-print('\nGenerate Features')
-x = list()
-y = list()
-for _ in range(50):
-    # Getting
-    x_raw, y_raw = get_minibatch(doc_stream, size=1000)
-    
-    # Update features
-    features = [ [ positiveLexicon           (preprocessing(text)),
-                   negativeLexicon           (preprocessing(text)),
-                   doesIncludeNo             (preprocessing(text)), 
-                   doesIncludePronouns       (preprocessing(text)),
-                   doesIncludeExclamationMark(preprocessing(text)),
-                   logCountWords             (preprocessing(text)),
-                   morePositives             (preprocessing(text)),
-                   moreNegatives             (preprocessing(text)),
-                   howMuchPositives          (preprocessing(text)),
-                   howMuchNegatives          (preprocessing(text))] for text in x_raw ] 
-    x = x + features
-    
-    # Update out
-    y = y + y_raw
-    
-    # Bar
-    pbar.update()
 
 """
 Data analysis
@@ -406,8 +389,18 @@ positive,negative = dataAnalysis(doc_stream)
 positive.to_csv('positive.csv',index=False)
 negative.to_csv('negative.csv',index=False)
 
+"""
 import pandas as pd
-n = 1000
+
+positive = pd.read_csv('positive.csv')
+negative = pd.read_csv('negative.csv')
+
+if 'index' in positive:
+    positive.drop('index', axis=1, inplace=True)
+if 'index' in negative:
+    negative.drop('index', axis=1, inplace=True)
+
+n = 2000
 select_positive = positive.loc[:n,:]
 select_negative = negative.loc[:n,:]
 
@@ -438,8 +431,8 @@ for ip in range( len(select_positive) ):
 interPosNeg = pd.DataFrame({'Word' : PosNeg,'Coefficient': coefPos})
 excluPosNeg = pd.DataFrame({'Word' : Pos_Neg,'Count': countPN})
     
-interPosNeg = interPosNeg.sort_values('Coefficient',ascending = False).reset_index()
-excluPosNeg = excluPosNeg.sort_values('Count',ascending = False).reset_index()
+interPosNeg = interPosNeg.sort_values('Coefficient',ascending = False).reset_index(drop=True)
+excluPosNeg = excluPosNeg.sort_values('Count',ascending = False).reset_index(drop=True)
 
 interPosNeg.to_csv('interPosNeg.csv',index=False)
 excluPosNeg.to_csv('excluPosNeg.csv',index=False)
@@ -467,11 +460,59 @@ for ip in range( len(select_negative) ):
 interNegPos = pd.DataFrame({'Word' : NegPos,'Coefficient': coefNeg})
 excluNegPos = pd.DataFrame({'Word' : Neg_Pos,'Count': countNP})
 
-interNegPos = interNegPos.sort_values('Coefficient',ascending = False).reset_index()
-excluNegPos = excluNegPos.sort_values('Count',ascending = False).reset_index()
+interNegPos = interNegPos.sort_values('Coefficient',ascending = False).reset_index(drop=True)
+excluNegPos = excluNegPos.sort_values('Count',ascending = False).reset_index(drop=True)
 
 interNegPos.to_csv('interNegPos.csv',index=False)
 excluNegPos.to_csv('excluNegPos.csv',index=False)
+
+
+
+"""
+Generate features
+-----------------
+"""
+"""
+import pyprind
+pbar = pyprind.ProgBar(50)
+doc_stream = stream_docs(path='shuffled_movie_data.csv')
+
+
+print('\nGenerate Features')
+x = list()
+y = list()
+for _ in range(50):
+    # Getting
+    x_raw, y_raw = get_minibatch(doc_stream, size=1000)
+    
+    # Update features
+    features = [ [ positiveLexicon           (preprocessing(text)),
+                   negativeLexicon           (preprocessing(text)),
+                   doesIncludeNo             (preprocessing(text)), 
+                   doesIncludePronouns       (preprocessing(text)),
+                   doesIncludeExclamationMark(preprocessing(text)),
+                   logCountWords             (preprocessing(text)),
+                   morePositives             (preprocessing(text)),
+                   moreNegatives             (preprocessing(text)),
+                   howMuchPositives          (preprocessing(text),
+                                                      interPosNeg,
+                                                      excluPosNeg),
+                   howMuchNegatives          (preprocessing(text),
+                                                      interNegPos,
+                                                      excluNegPos),
+                   howMuchPositivesRatio     (preprocessing(text),
+                                                      interPosNeg,
+                                                      excluPosNeg),
+                   howMuchNegativesRatio     (preprocessing(text),
+                                                      interNegPos,
+                                                      excluNegPos)] for text in x_raw ] 
+    x = x + features
+    
+    # Update out
+    y = y + y_raw
+    
+    # Bar
+    pbar.update()
 """
 
 
@@ -487,6 +528,9 @@ kf = KFold(n_splits=8)
 pbar = pyprind.ProgBar(8)
 
 prediction = list()
+
+features = [0,1,2,3,4,5,6,7,8,9,10,11]
+
 for train, test in kf.split(x):
     
     # Select
@@ -497,20 +541,13 @@ for train, test in kf.split(x):
     y_test = [ y[i] for i in test ]
     
     # Run train
-    w = StochasticGradientDescent(x_train, y_train)
+    w = StochasticGradientDescent(x_train, y_train,features)
     
     # Run test
-    y_pred = applyModel(x_test,w)
+    y_pred = applyModel(x_test,w,features)
     
     prediction.append({'Real'      : y_test,
                        'Prediction': y_pred})
-    
-    # Accuracy
-    #acc = 0
-    #for real,pred in zip(y_pred,y_test):
-    #    acc = acc + int( real == pred )
-    
-    #accuracy.append( acc*100/len(test) )
     
     # Bar
     pbar.update()
